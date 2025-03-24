@@ -25,7 +25,7 @@ public class UrlController {
     }
 
     @GetMapping("/{shortUrl}")
-    public ResponseEntity<UrlResponseDto> getOriginalUrl(@PathVariable String shortUrl) {
+    public ResponseEntity<UrlResponseDto> getOriginalUrl(@PathVariable("shortUrl") String shortUrl) {
         return urlService.getOriginalUrl(shortUrl)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
