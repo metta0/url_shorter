@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "url")
+@Table(name = "url", indexes = @Index(name = "idx_short_url_is_deleted", columnList = "shortUrl, isDeleted"))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,7 +21,7 @@ public class Url {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "short_url", length = 255, unique = true)
+    @Column(name = "short_url", length = 255)
     private String shortUrl;
 
     @Column(name = "original_url", length = 2048)
