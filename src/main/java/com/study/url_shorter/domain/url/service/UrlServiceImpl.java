@@ -5,9 +5,13 @@ import com.study.url_shorter.domain.url.dto.UrlResponseDto;
 import com.study.url_shorter.domain.url.entity.Url;
 import com.study.url_shorter.domain.url.repository.UrlRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UrlServiceImpl {
@@ -20,16 +24,12 @@ public class UrlServiceImpl {
         this.urlRepository = urlRepository;
     }
 
+    @Transactional
     public UrlResponseDto createShortUrl(UrlRequestDto requestDto) {
         String shortUrl = generateShortUrl();
         Url url = new Url(shortUrl, requestDto.getOriginalUrl());
         urlRepository.save(url);
         return new UrlResponseDto(shortUrl, requestDto.getOriginalUrl());
-    }
-
-    public Optional<UrlResponseDto> getOriginalUrl(String shortUrl) {
-        return urlRepository.findByShortUrl(shortUrl)
-                .map(url -> new UrlResponseDto(url.getShortUrl(), url.getOriginalUrl()));
     }
 
     private String generateShortUrl() {
@@ -40,9 +40,45 @@ public class UrlServiceImpl {
         }
         String shortUrl = sb.toString();
         // 중복 체크 (단순화된 예시, 실제로는 재귀 호출 등으로 개선 가능)
-        if (urlRepository.findByShortUrl(shortUrl).isPresent()) {
+        if (urlRepository.findByShortUrlAndIsDeletedFalse(shortUrl).isPresent()) {
             return generateShortUrl();
         }
         return shortUrl;
+    }
+
+    public Optional<List<UrlResponseDto>> getAllUrls(){
+        List<Url> urls = urlRepository.findAllByIsDeletedFalse();
+
+        if (urls.isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<UrlResponseDto> urlResponseDtos = urls.stream()
+                .map(url -> new UrlResponseDto(url.getShortUrl(), url.getOriginalUrl()))
+                .collect(Collectors.toList());
+
+        return Optional.of(urlResponseDtos);
+    }
+
+    public Optional<UrlResponseDto> getOriginalUrl(String shortUrl) {
+        return urlRepository.findByShortUrlAndIsDeletedFalse(shortUrl)
+                .map(url -> new UrlResponseDto(url.getShortUrl(), url.getOriginalUrl()));
+    }
+
+    @Transactional
+    public UrlResponseDto updateShortUrl(String shortUrl, UrlRequestDto requestDto) {
+        Url url = urlRepository.findByShortUrlAndIsDeletedFalse(shortUrl)
+                .orElseThrow(() -> new NoSuchElementException());
+        url.setOriginalUrl(requestDto.getOriginalUrl()); // 핵심 상태 재정의
+        urlRepository.save(url); // updated_at은 서버가 관리
+        return new UrlResponseDto(url.getShortUrl(), url.getOriginalUrl());
+    }
+
+    @Transactional
+    public void deleteShortUrl(String shortUrl) {
+        Url url = urlRepository.findByShortUrlAndIsDeletedFalse(shortUrl)
+                .orElseThrow(() -> new NoSuchElementException());
+        url.setIsDeleted(true);
+        urlRepository.save(url);
     }
 }
