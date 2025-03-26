@@ -4,5 +4,6 @@ CREATE TABLE url (
     original_url VARCHAR(2048),
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP,
-    is_deleted BOOLEAN DEFAULT FALSE
+    is_deleted BOOLEAN DEFAULT FALSE,
+    INDEX idx_short_url_is_deleted (short_url, is_deleted)
 );
